@@ -1,0 +1,27 @@
+create database velai;
+use velai;
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50),
+    password VARCHAR(50),
+    email VARCHAR(100),
+    role VARCHAR(20)
+);
+
+CREATE TABLE jobs (
+    job_id INT AUTO_INCREMENT PRIMARY KEY,
+    employer_id INT,
+    job_title VARCHAR(100),
+    job_description TEXT,
+    location VARCHAR(100),
+    salary DOUBLE
+);
+select * from users;
+select * from jobs;
+CREATE TABLE applications (
+    app_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT,
+    job_id INT,
+    applied_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+select * from applications;
