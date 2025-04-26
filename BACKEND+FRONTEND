@@ -1,0 +1,238 @@
+package lab2;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.sql.*;
+
+public class lab2 extends JFrame {
+
+    JTextField usernameField, emailField;
+    JComboBox<String> roleBox;
+    JPasswordField passwordField;
+    JTextField loginUsernameField;
+    JPasswordField loginPasswordField;
+
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/velai";
+    private static final String DB_USER = "root";
+    private static final String DB_PASS = "08042006";
+
+    public lab2() {
+        setTitle("JobConnect");
+        setSize(400, 300);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.add("Register", registerPanel());
+        tabs.add("Login", loginPanel());
+
+        add(tabs);
+        setVisible(true);
+    }
+
+    private JPanel registerPanel() {
+        JPanel panel = new JPanel(new GridLayout(5, 2));
+
+        usernameField = new JTextField();
+        passwordField = new JPasswordField();
+        emailField = new JTextField();
+        roleBox = new JComboBox<>(new String[]{"seeker", "employer"});
+
+        panel.add(new JLabel("Username:"));
+        panel.add(usernameField);
+        panel.add(new JLabel("Password:"));
+        panel.add(passwordField);
+        panel.add(new JLabel("Email:"));
+        panel.add(emailField);
+        panel.add(new JLabel("Role:"));
+        panel.add(roleBox);
+
+        JButton registerBtn = new JButton("Register");
+        registerBtn.addActionListener(e -> registerUser());
+        panel.add(registerBtn);
+
+        return panel;
+    }
+
+    private JPanel loginPanel() {
+        JPanel panel = new JPanel(new GridLayout(3, 2));
+
+        loginUsernameField = new JTextField();
+        loginPasswordField = new JPasswordField();
+
+        panel.add(new JLabel("Username:"));
+        panel.add(loginUsernameField);
+        panel.add(new JLabel("Password:"));
+        panel.add(loginPasswordField);
+
+        JButton loginBtn = new JButton("Login");
+        loginBtn.addActionListener(e -> loginUser());
+        panel.add(loginBtn);
+
+        return panel;
+    }
+
+    private void registerUser() {
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword()).trim();
+        String email = emailField.getText().trim();
+        String role = roleBox.getSelectedItem().toString().toLowerCase();
+
+        if (username.isEmpty() || password.isEmpty() || email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "All fields are required.");
+            return;
+        }
+
+        try (Connection conn = getConnection()) {
+            String sql = "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            stmt.setString(3, email);
+            stmt.setString(4, role);
+
+            int rows = stmt.executeUpdate();
+            JOptionPane.showMessageDialog(this, rows > 0 ? "Registered successfully!" : "Registration failed.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Registration error: " + e.getMessage());
+        }
+    }
+
+    private void loginUser() {
+        String username = loginUsernameField.getText().trim();
+        String password = new String(loginPasswordField.getPassword()).trim();
+
+        try (Connection conn = getConnection()) {
+            String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String role = rs.getString("role");
+                int userId = rs.getInt("user_id");
+                JOptionPane.showMessageDialog(this, "Login successful as " + role + "!");
+                if (role.equals("seeker")) {
+                    showJobListings(userId);
+                } else if (role.equals("employer")) {
+                    showJobPostForm(userId);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Invalid login!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showJobListings(int userId) {
+        JFrame jobFrame = new JFrame("Available Jobs");
+        jobFrame.setSize(500, 500);
+        jobFrame.setLayout(new BorderLayout());
+
+        JPanel jobPanel = new JPanel();
+        jobPanel.setLayout(new BoxLayout(jobPanel, BoxLayout.Y_AXIS));
+        JScrollPane scrollPane = new JScrollPane(jobPanel);
+        jobFrame.add(scrollPane, BorderLayout.CENTER);
+
+        try (Connection conn = getConnection()) {
+            String sql = "SELECT * FROM jobs";
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            while (rs.next()) {
+                int jobId = rs.getInt("job_id");
+                String title = rs.getString("job_title");
+                String desc = rs.getString("job_description");
+                String location = rs.getString("location");
+                double salary = rs.getDouble("salary");
+
+                JPanel singleJobPanel = new JPanel(new GridLayout(0, 1));
+                singleJobPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+                singleJobPanel.add(new JLabel("Title: " + title));
+                singleJobPanel.add(new JLabel("Desc: " + desc));
+                singleJobPanel.add(new JLabel("Location: " + location));
+                singleJobPanel.add(new JLabel("Salary: " + salary));
+
+                JButton applyBtn = new JButton("Apply");
+                applyBtn.addActionListener(e -> applyToJob(userId, jobId));
+                singleJobPanel.add(applyBtn);
+
+                jobPanel.add(singleJobPanel);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        jobFrame.setVisible(true);
+    }
+
+    private void applyToJob(int userId, int jobId) {
+        try (Connection conn = getConnection()) {
+            String applySql = "INSERT INTO applications (user_id, job_id) VALUES (?, ?)";
+            PreparedStatement applyStmt = conn.prepareStatement(applySql);
+            applyStmt.setInt(1, userId);
+            applyStmt.setInt(2, jobId);
+            applyStmt.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Applied to job successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error applying to job.");
+        }
+    }
+
+    private void showJobPostForm(int employerId) {
+        JFrame postFrame = new JFrame("Post a Job");
+        postFrame.setSize(400, 300);
+        JPanel panel = new JPanel(new GridLayout(5, 2));
+
+        JTextField titleField = new JTextField();
+        JTextField descField = new JTextField();
+        JTextField locationField = new JTextField();
+        JTextField salaryField = new JTextField();
+
+        panel.add(new JLabel("Title:")); panel.add(titleField);
+        panel.add(new JLabel("Description:")); panel.add(descField);
+        panel.add(new JLabel("Location:")); panel.add(locationField);
+        panel.add(new JLabel("Salary:")); panel.add(salaryField);
+
+        JButton postBtn = new JButton("Post Job");
+        postBtn.addActionListener(e -> {
+            try (Connection conn = getConnection()) {
+                String sql = "INSERT INTO jobs (employer_id, job_title, job_description, location, salary) VALUES (?, ?, ?, ?, ?)";
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                stmt.setInt(1, employerId);
+                stmt.setString(2, titleField.getText());
+                stmt.setString(3, descField.getText());
+                stmt.setString(4, locationField.getText());
+                stmt.setDouble(5, Double.parseDouble(salaryField.getText()));
+                int rows = stmt.executeUpdate();
+                JOptionPane.showMessageDialog(postFrame, rows > 0 ? "Job posted!" : "Failed to post job.");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        panel.add(postBtn);
+        postFrame.add(panel);
+        postFrame.setVisible(true);
+    }
+
+    private Connection getConnection() throws SQLException {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            return DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("Driver not found");
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(lab2::new);
+    }
+}
