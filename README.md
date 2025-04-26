@@ -56,3 +56,7 @@ Database constraints ensure data integrity.
 Desktop-based UI (Java Swing) that's easy to use for patients.
 
 Clear menus for registration, login, doctor suggestions, and appointment status.
+
+OUTPUT:
+![image](https://github.com/user-attachments/assets/bf22550e-5b00-45d0-b943-461e2216f779)
+
