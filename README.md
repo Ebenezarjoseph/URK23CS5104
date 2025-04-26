@@ -1,7 +1,9 @@
 # URK23CS5104
 JAVA FULL STACK DEVELOPMENT PROJECT
-**
-PURPOSE OF THIS PROJECT:**
+
+JOB PORTAL
+
+PURPOSE OF THIS PROJECT:
 
 To create a user-friendly platform where patients can register, log in, describe their symptoms, and get doctor recommendations based on their symptoms.
 
@@ -10,8 +12,8 @@ To allow patients to easily book appointments with available doctors, simplifyin
 To help doctors manage appointments and offer quicker service to patients.
 
 To connect patients and doctors efficiently through an online system.
-**
-KEY FEATURES:**
+
+KEY FEATURES:
 
 1. Patient Registration and Login
 Patients can create an account by providing basic details and symptoms.
